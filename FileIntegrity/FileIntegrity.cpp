@@ -38,6 +38,108 @@ std::wstring AsString(SECURITY_DESCRIPTOR_CONTROL sc) {
   return result;
 }
 
+std::wstring RidAsString(DWORD rid) {
+  if (rid == SECURITY_MANDATORY_UNTRUSTED_RID) return L"SECURITY_MANDATORY_UNTRUSTED_RID";
+  if (rid == SECURITY_MANDATORY_LOW_RID) return L"SECURITY_MANDATORY_LOW_RID";
+  if (rid == SECURITY_MANDATORY_MEDIUM_RID) return L"SECURITY_MANDATORY_MEDIUM_RID";
+  if (rid == SECURITY_MANDATORY_MEDIUM_PLUS_RID) return L"SECURITY_MANDATORY_MEDIUM_PLUS_RID";
+  if (rid == SECURITY_MANDATORY_HIGH_RID) return L"SECURITY_MANDATORY_HIGH_RID";
+  if (rid == SECURITY_MANDATORY_SYSTEM_RID) return L"SECURITY_MANDATORY_SYSTEM_RID";
+  if (rid == SECURITY_MANDATORY_PROTECTED_PROCESS_RID) return L"SECURITY_MANDATORY_PROTECTED_PROCESS_RID";
+  return L"(UNKNOWN RID)";
+}
+
+std::wstring AceTypeAsString(BYTE ace_type) {
+  if (ace_type == ACCESS_ALLOWED_ACE_TYPE)
+    return L"ACCESS_ALLOWED_ACE_TYPE";
+  if (ace_type == ACCESS_DENIED_ACE_TYPE)
+    return L"ACCESS_DENIED_ACE_TYPE";
+  if (ace_type == SYSTEM_AUDIT_ACE_TYPE)
+    return L"SYSTEM_AUDIT_ACE_TYPE";
+  if (ace_type == SYSTEM_ALARM_ACE_TYPE)
+    return L"SYSTEM_ALARM_ACE_TYPE";
+  if (ace_type == ACCESS_ALLOWED_COMPOUND_ACE_TYPE)
+    return L"ACCESS_ALLOWED_COMPOUND_ACE_TYPE";
+  if (ace_type == ACCESS_ALLOWED_OBJECT_ACE_TYPE)
+    return L"ACCESS_ALLOWED_OBJECT_ACE_TYPE";
+  if (ace_type == ACCESS_DENIED_OBJECT_ACE_TYPE)
+    return L"ACCESS_DENIED_OBJECT_ACE_TYPE";
+  if (ace_type == SYSTEM_AUDIT_OBJECT_ACE_TYPE)
+    return L"SYSTEM_AUDIT_OBJECT_ACE_TYPE";
+  if (ace_type == SYSTEM_ALARM_OBJECT_ACE_TYPE)
+    return L"SYSTEM_ALARM_OBJECT_ACE_TYPE";
+  if (ace_type == ACCESS_ALLOWED_CALLBACK_ACE_TYPE)
+    return L"ACCESS_ALLOWED_CALLBACK_ACE_TYPE";
+  if (ace_type == ACCESS_DENIED_CALLBACK_ACE_TYPE)
+    return L"ACCESS_DENIED_CALLBACK_ACE_TYPE";
+  if (ace_type == ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE)
+    return L"ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE";
+  if (ace_type == ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE)
+    return L"ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE";
+  if (ace_type == SYSTEM_AUDIT_CALLBACK_ACE_TYPE)
+    return L"SYSTEM_AUDIT_CALLBACK_ACE_TYPE";
+  if (ace_type == SYSTEM_ALARM_CALLBACK_ACE_TYPE)
+    return L"SYSTEM_ALARM_CALLBACK_ACE_TYPE";
+  if (ace_type == SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE)
+    return L"SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE";
+  if (ace_type == SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE)
+    return L"SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE";
+  if (ace_type == SYSTEM_MANDATORY_LABEL_ACE_TYPE)
+    return L"SYSTEM_MANDATORY_LABEL_ACE_TYPE";
+  return L"(UNKNOWN AceType)";
+}
+
+std::wstring AceFlagsAsString(BYTE f) {
+  std::wstring result;
+  if (f & OBJECT_INHERIT_ACE) {
+    if (!result.empty())
+      result.append(L" ");
+    result.append(L"OBJECT_INHERIT_ACE");
+    f &= ~OBJECT_INHERIT_ACE;
+  }
+  if (f & CONTAINER_INHERIT_ACE) {
+    if (!result.empty())
+      result.append(L" ");
+    result.append(L"CONTAINER_INHERIT_ACE");
+    f &= ~CONTAINER_INHERIT_ACE;
+  }
+  if (f & NO_PROPAGATE_INHERIT_ACE) {
+    if (!result.empty())
+      result.append(L" ");
+    result.append(L"NO_PROPAGATE_INHERIT_ACE");
+    f &= ~NO_PROPAGATE_INHERIT_ACE;
+  }
+  if (f & INHERIT_ONLY_ACE) {
+    if (!result.empty())
+      result.append(L" ");
+    result.append(L"INHERIT_ONLY_ACE");
+    f &= ~INHERIT_ONLY_ACE;
+  }
+  if (f & INHERITED_ACE) {
+    if (!result.empty())
+      result.append(L" ");
+    result.append(L"INHERITED_ACE");
+    f &= ~INHERITED_ACE;
+  }
+  if (f & SUCCESSFUL_ACCESS_ACE_FLAG) {
+    if (!result.empty())
+      result.append(L" ");
+    result.append(L"SUCCESSFUL_ACCESS_ACE_FLAG");
+    f &= ~SUCCESSFUL_ACCESS_ACE_FLAG;
+  }
+  if (f & FAILED_ACCESS_ACE_FLAG) {
+    if (!result.empty())
+      result.append(L" ");
+    result.append(L"FAILED_ACCESS_ACE_FLAG");
+    f &= ~FAILED_ACCESS_ACE_FLAG;
+  }
+  if (f) {
+    if (!result.empty())
+      result.append(L" ");
+    result.append(std::to_wstring(f));
+  }  return result;
+}
+
 std::ostream& operator<<(SECURITY_DESCRIPTOR_CONTROL sc, std::ostream& os) {
   return os << AsString(sc).c_str();
 }
@@ -176,9 +278,9 @@ int wmain(_In_range_(>, 0) int argc, _In_reads_(argc) wchar_t* argv[]) {
                << "; sacl_defaulted = " << (bool)sacl_defaulted
                << "; sacl->AceCount = " << sacl->AceCount
                << std::resetiosflags(kFlags) << std::endl;
-    PACCESS_ALLOWED_ACE ace = nullptr;
+    PACCESS_ALLOWED_ACE aa_ace = nullptr;
     if (sacl->AceCount > 0) {
-      get_security_result = GetAce(sacl, 0, reinterpret_cast<void**>(&ace));
+      get_security_result = GetAce(sacl, 0, reinterpret_cast<void**>(&aa_ace));
       if (!get_security_result) {
         std::wcout << "GetAce: error = " << std::dec << last_error << " ("
                    << std::hex << std::showbase << last_error << ")"
@@ -186,6 +288,16 @@ int wmain(_In_range_(>, 0) int argc, _In_reads_(argc) wchar_t* argv[]) {
         continue;
       } else {
         std::wcout << "GetAce: retrieved the ACE at position 0." << std::endl;
+        std::wcout << "ACE_HEADER:" << std::endl;
+        std::wcout << " .AceType = " << std::showbase << std::hex
+                   << aa_ace->Header.AceType << " (" << std::resetiosflags(kFlags)
+                   << AceTypeAsString(aa_ace->Header.AceType) << ")"
+                   << std::endl;
+        std::wcout << " .AceFlags = " << std::showbase << std::hex
+                   << aa_ace->Header.AceFlags << std::resetiosflags(kFlags)
+                   << " (" << AceFlagsAsString(aa_ace->Header.AceFlags)
+                   << ")" << std::endl;
+        std::wcout << " .AceSize = " << aa_ace->Header.AceSize << std::endl;
       }
     } else {
       std::wcout
@@ -194,41 +306,53 @@ int wmain(_In_range_(>, 0) int argc, _In_reads_(argc) wchar_t* argv[]) {
       continue;
     }
 
-    PSID sid = &ace->SidStart;
-    auto sid_length = GetLengthSid(sid);
-    Closer<PSID> integrity_sid(sid_length);
-    get_security_result = CopySid(sid_length, integrity_sid, sid);
-    if (!get_security_result) {
-      last_error = GetLastError();
-      std::wcout << "CopySid for " << sid_length
-                 << " bytes; error = " << std::dec << last_error << " ("
-                 << std::hex << std::showbase << last_error << ")"
-                 << std::resetiosflags(kFlags) << std::endl;
-      ++failure_count;
-      continue;
-    }
+    if (aa_ace->Header.AceType == SYSTEM_MANDATORY_LABEL_ACE_TYPE) {
+      PSID sid = &aa_ace->SidStart;
+      auto sid_length = GetLengthSid(sid);
+      Closer<PSID> integrity_sid(sid_length);
+      get_security_result = CopySid(sid_length, integrity_sid, sid);
+      if (!get_security_result) {
+        last_error = GetLastError();
+        std::wcout << "CopySid for " << sid_length
+                   << " bytes; error = " << std::dec << last_error << " ("
+                   << std::hex << std::showbase << last_error << ")"
+                   << std::resetiosflags(kFlags) << std::endl;
+        ++failure_count;
+        continue;
+      } else {
+        std::wcout << "CopySid successful: copied " << sid_length << " bytes."
+                   << std::endl;
+      }
 
-    if (!IsValidSid(integrity_sid)) {
-      last_error = GetLastError();
-      std::wcout << "IsValidSid for integrity_sid; error = " << std::dec
-                 << last_error << " (" << std::hex << std::showbase
-                 << last_error << ")" << std::resetiosflags(kFlags)
-                 << std::endl;
-      ++failure_count;
-      continue;
-    }
+      if (!IsValidSid(integrity_sid)) {
+        last_error = GetLastError();
+        std::wcout << "IsValidSid for integrity_sid; error = " << std::dec
+                   << last_error << " (" << std::hex << std::showbase
+                   << last_error << ")" << std::resetiosflags(kFlags)
+                   << std::endl;
+        ++failure_count;
+        continue;
+      } else {
+        std::wcout << "The integrity SID is valid." << std::endl;
+      }
 
-    UCHAR sub_authority_count = *GetSidSubAuthorityCount(integrity_sid);
-    std::wcout << "integity SID sub_authority_count = "
-               << static_cast<int>(sub_authority_count) << std::endl;
-    if (sub_authority_count > 0) {
-      DWORD* integrity_rid_pointer =
-          GetSidSubAuthority(integrity_sid, sub_authority_count - 1);
-      std::wcout << "integrity_rid = " << std::dec << *integrity_rid_pointer
-                 << std::hex << std::showbase << " (" << *integrity_rid_pointer
-                 << ")" << std::resetiosflags(kFlags) << std::endl;
+      UCHAR sub_authority_count = *GetSidSubAuthorityCount(integrity_sid);
+      std::wcout << "integity SID sub_authority_count = "
+                 << static_cast<int>(sub_authority_count) << std::endl;
+      if (sub_authority_count > 0) {
+        DWORD* integrity_rid_pointer =
+            GetSidSubAuthority(integrity_sid, sub_authority_count - 1);
+        std::wcout << "integrity_rid = " << std::dec << *integrity_rid_pointer
+                   << std::hex << std::showbase << " ("
+                   << *integrity_rid_pointer << " \"" << RidAsString(*integrity_rid_pointer) << "\")"
+                   << std::resetiosflags(kFlags) << std::endl;
+      } else {
+        std::wcout << "No RID to see -- sub_authority_count is zero."
+                   << std::endl;
+      }
     } else {
-      std::wcout << "No RID to see -- sub_authority_count is zero."
+      std::wcout << "There is not a SYSTEM_MANDATORY_LABEL_ACE_TYPE ACE to "
+                    "show; default = MEDIUM."
                  << std::endl;
     }
   }
