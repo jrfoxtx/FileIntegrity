@@ -177,11 +177,20 @@ int wmain(_In_range_(>, 0) int argc, _In_reads_(argc) wchar_t* argv[]) {
                << "; sacl->AceCount = " << sacl->AceCount
                << std::resetiosflags(kFlags) << std::endl;
     PACCESS_ALLOWED_ACE ace = nullptr;
-    get_security_result = GetAce(sacl, 0, reinterpret_cast<void**>(&ace));
-    if (!get_security_result) {
-      std::wcout << "GetAce: error = " << std::dec << last_error << " ("
-                 << std::hex << std::showbase << last_error << ")"
-                 << std::resetiosflags(kFlags) << std::endl;
+    if (sacl->AceCount > 0) {
+      get_security_result = GetAce(sacl, 0, reinterpret_cast<void**>(&ace));
+      if (!get_security_result) {
+        std::wcout << "GetAce: error = " << std::dec << last_error << " ("
+                   << std::hex << std::showbase << last_error << ")"
+                   << std::resetiosflags(kFlags) << std::endl;
+        continue;
+      } else {
+        std::wcout << "GetAce: retrieved the ACE at position 0." << std::endl;
+      }
+    } else {
+      std::wcout
+          << "No ACE is present in the SACL to determine integrity level."
+          << std::endl;
       continue;
     }
 
